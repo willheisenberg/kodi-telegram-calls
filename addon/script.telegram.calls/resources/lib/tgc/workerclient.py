@@ -13,8 +13,14 @@ import time
 
 from tgc.protocol import ProtocolError, decode, encode
 
+EXIT_LOCKED = 3  # worker/main.py: Sperre belegt
+
 
 class WorkerError(RuntimeError):
+    pass
+
+
+class _Locked(Exception):
     pass
 
 
@@ -32,8 +38,24 @@ class WorkerClient:
         self._lock = threading.Lock()
         self._stopping = False
 
-    def start(self):
+    def start(self, should_abort=None):
+        """Startet den Prozess und verbindet sich. should_abort() wird laufend gefragt (Kodi beendet das Add-on).
+
+        Exit-Code 3 heißt: Ein alter Anrufprozess hält die Sperre noch (er beendet sich gerade). Dann wird
+        bis zum Timeout neu gestartet.
+        """
         self._stopping = False
+        deadline = time.monotonic() + self._timeout
+        while True:
+            self._spawn()
+            try:
+                self._sock = self._connect(deadline, should_abort)
+                break
+            except _Locked:
+                time.sleep(0.5)
+        threading.Thread(target=self._read, args=(self._sock,), name='anrufprozess', daemon=True).start()
+
+    def _spawn(self):
         stderr = subprocess.DEVNULL
         if self._log_path:
             stderr = os.open(self._log_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -43,17 +65,22 @@ class WorkerClient:
         finally:
             if self._log_path:
                 os.close(stderr)
-        self._proc.stdin.write((json.dumps(self._init) + '\n').encode())
-        self._proc.stdin.close()
-        self._sock = self._connect()
-        threading.Thread(target=self._read, args=(self._sock,), name='anrufprozess', daemon=True).start()
+        try:
+            self._proc.stdin.write((json.dumps(self._init) + '\n').encode())
+            self._proc.stdin.close()
+        except BrokenPipeError:
+            pass  # Prozess ist schon wieder beendet; _connect meldet den Exit-Code
 
-    def _connect(self):
-        deadline = time.monotonic() + self._timeout
+    def _connect(self, deadline, should_abort):
         while True:
             code = self._proc.poll()
+            if code == EXIT_LOCKED and time.monotonic() < deadline:
+                raise _Locked()
             if code is not None:
                 raise WorkerError(f'Anrufprozess beendet (Code {code})')
+            if should_abort is not None and should_abort():
+                self._kill()
+                raise WorkerError('Start abgebrochen')
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             try:
                 sock.connect(self._sock_path)

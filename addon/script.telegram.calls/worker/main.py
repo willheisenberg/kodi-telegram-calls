@@ -48,8 +48,8 @@ class Worker:
     def __init__(self, init, data_dir):
         self.init = init
         self.data_dir = data_dir
-        self.server = Server(os.path.join(data_dir, 'worker.sock'), self.on_command)
         self.quit = asyncio.Event()
+        self.server = Server(os.path.join(data_dir, 'worker.sock'), self.on_command, on_orphaned=self.quit.set)
         self.client = None
         self.session = None
         self.calls = None

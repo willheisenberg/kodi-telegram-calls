@@ -46,8 +46,8 @@ def test_absturz_meldet_lost(tmp_path):
 
 
 def test_sofortiges_ende_wird_als_fehler_gemeldet(tmp_path):
-    worker, _ = client(tmp_path, argv=[sys.executable, '-c', 'import sys; sys.exit(3)'])
-    with pytest.raises(WorkerError, match='Code 3'):
+    worker, _ = client(tmp_path, argv=[sys.executable, '-c', 'import sys; sys.exit(2)'])
+    with pytest.raises(WorkerError, match='Code 2'):
         worker.start()
 
 
@@ -64,3 +64,28 @@ def test_log_datei_ist_privat(tmp_path):
     events.get(timeout=5)
     worker.stop()
     assert oct(os.stat(log).st_mode & 0o777) == '0o600'
+
+
+def test_start_laesst_sich_abbrechen(tmp_path):
+    """Kodi gibt 5 s zum Beenden; das Warten auf den Anrufprozess muss darauf reagieren."""
+    import time
+
+    worker, _ = client(tmp_path, argv=[sys.executable, '-c', 'import time; time.sleep(30)'], timeout=20)
+    started = time.monotonic()
+    with pytest.raises(WorkerError, match='abgebrochen'):
+        worker.start(should_abort=lambda: time.monotonic() - started > 0.3)
+    assert time.monotonic() - started < 2
+
+
+def test_start_wartet_bis_die_alte_sperre_frei_ist(tmp_path):
+    """Exit-Code 3 heißt: der alte Anrufprozess hält die Sperre noch. Kurz warten und neu starten."""
+    marker = tmp_path / 'erster-versuch'
+    script = (f'import os, runpy, sys\n'
+              f'if not os.path.exists({str(marker)!r}):\n'
+              f'    open({str(marker)!r}, "w").close(); sys.exit(3)\n'
+              f'sys.argv = [{FAKE!r}, {str(tmp_path)!r}]\n'
+              f'runpy.run_path({FAKE!r}, run_name="__main__")\n')
+    worker, events = client(tmp_path, argv=[sys.executable, '-c', script])
+    worker.start()
+    assert events.get(timeout=5)['typ'] == 'ready'
+    worker.stop()

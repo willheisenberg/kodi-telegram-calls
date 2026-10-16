@@ -16,7 +16,7 @@ import xbmcaddon
 import xbmcgui
 import xbmcvfs
 
-from tgc import skin
+from tgc import instance, skin
 from tgc.appstate import AppState
 from tgc.favorites import Favorites
 from tgc.workerclient import WorkerClient, WorkerError
@@ -33,6 +33,10 @@ ACTION_NAV_BACK = 92
 ACTION_STOP = 13
 ACTION_CONTEXT_MENU = 117
 RESTARTS_PER_MINUTE = 3
+# Ein zweiter Start setzt diese Eigenschaft am Home-Fenster; die laufende Instanz holt sich dann nach vorn.
+RAISE_PROPERTY = 'script.telegram.calls.raise'
+HOME_WINDOW = 10000
+PARTYVIDEO_SUPPRESS = 'partyvideo.suppress'  # siehe docs/bot-api.md in visualization.partyvideo
 
 
 def log(message, level=xbmc.LOGINFO):
@@ -273,6 +277,13 @@ class Ui:
         screen.show()
         self._stack.append(name)
 
+    def raise_top(self):
+        """Oberstes Fenster wieder zeigen, z. B. nachdem man in Kodi woanders hin gewechselt ist."""
+        if self._stack:
+            self._screens[self._stack[-1]].show()
+        if self._ring is not None:
+            self._ring.show()
+
     def refresh(self):
         if self._stack:
             self._screens[self._stack[-1]].render()
@@ -344,7 +355,8 @@ class Controller:
     def start_worker(self):
         self.worker = make_worker(lambda message: self.events.put(('event', message)))
         try:
-            self.worker.start()
+            # Abbrechbar: Kodi fordert beim erneuten Start die alte Instanz zum Beenden auf (5 s Frist).
+            self.worker.start(should_abort=xbmc.Monitor().abortRequested)
         except WorkerError as e:
             log(f'Anrufprozess startet nicht: {e}', xbmc.LOGERROR)
             xbmcgui.Dialog().ok(TITLE, f'Der Anrufteil startet nicht ({e}).[CR]Details: {PROFILE}worker.log')
@@ -360,6 +372,15 @@ class Controller:
             self.process(time.monotonic())
 
     def process(self, now):
+        home = xbmcgui.Window(HOME_WINDOW)
+        if home.getProperty(RAISE_PROPERTY):
+            home.clearProperty(RAISE_PROPERTY)
+            self.ui.raise_top()
+        elif (self.state.call is not None or self.state.ringing is not None) and xbmc.getCondVisibility(
+                'Window.IsActive(visualisation)'):
+            # Der Anrufton läuft über Kodis Player; Visualisierungs-Add-ons (z. B. Party Video) halten ihn
+            # für Musik und schalten auf die Visualisierung. Im Anruf gehört der Bildschirm dem Add-on.
+            self.ui.raise_top()
         handled = False
         while self.running:
             try:
@@ -429,9 +450,14 @@ class Controller:
                 rpc('Player.PlayPause', playerid=player['playerid'], play=False)
 
     def screensaver(self, allowed):
+        """Klingeln/Anruf beginnt (allowed=False) oder ist vorbei: Bildschirmschoner und Party Video."""
+        home = xbmcgui.Window(HOME_WINDOW)
         if allowed:
             xbmc.executebuiltin('InhibitScreensaver(false)')
+            home.clearProperty(PARTYVIDEO_SUPPRESS)
         else:
+            # Der Anrufton läuft über Kodis Player; visualization.partyvideo schaltet sonst auf das Video.
+            home.setProperty(PARTYVIDEO_SUPPRESS, ADDON_ID)
             xbmc.executebuiltin('InhibitScreensaver(true)')
             rpc('Input.ExecuteAction', action='noop')  # weckt einen laufenden Bildschirmschoner
 
@@ -482,12 +508,18 @@ def main():
                                    'Einstellungen eintragen.')
         ADDON.openSettings()
         return
+    lock = instance.acquire(os.path.join(PROFILE, 'addon.lock'))
+    if lock is None:
+        # Läuft schon: nicht ein zweites Mal starten, sondern die laufende Instanz nach vorn holen.
+        xbmcgui.Window(HOME_WINDOW).setProperty(RAISE_PROPERTY, '1')
+        return
     controller = Controller()
     try:
         if controller.start_worker():
             controller.run()
     finally:
         controller.shutdown()
+        os.close(lock)
 
 
 def logout():

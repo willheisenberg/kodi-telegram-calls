@@ -14,12 +14,16 @@ from tgc.protocol import ProtocolError, check_command, decode, encode, redact
 log = logging.getLogger('worker.server')
 
 BACKLOG_LIMIT = 200
+ORPHAN_TIMEOUT = 10  # Sekunden ohne Add-on nach einem Verbindungsende, dann beendet sich der Prozess
 
 
 class Server:
-    def __init__(self, path, on_command):
+    def __init__(self, path, on_command, on_orphaned=None, orphan_timeout=ORPHAN_TIMEOUT):
         self._path = path
         self._on_command = on_command
+        self._on_orphaned = on_orphaned
+        self._orphan_timeout = orphan_timeout
+        self._orphan_task = None
         self._server = None
         self._writer = None
         self._backlog = []
@@ -47,6 +51,9 @@ class Server:
     async def _client(self, reader, writer):
         if self._writer is not None:
             self._writer.close()
+        if self._orphan_task is not None:
+            self._orphan_task.cancel()
+            self._orphan_task = None
         self._writer = writer
         for line in self._backlog:
             writer.write(line)
@@ -71,7 +78,16 @@ class Server:
         finally:
             if self._writer is writer:
                 self._writer = None
+                if self._on_orphaned is not None:
+                    self._orphan_task = asyncio.create_task(self._orphan_check())
             writer.close()
+
+    async def _orphan_check(self):
+        """Das Add-on ist weg (z. B. von Kodi abgeschossen): ohne neue Verbindung nicht als Waise weiterlaufen."""
+        await asyncio.sleep(self._orphan_timeout)
+        if self._writer is None:
+            log.warning('Kein Add-on mehr verbunden, beende den Anrufprozess')
+            self._on_orphaned()
 
     async def _run(self, message):
         try:
@@ -81,6 +97,8 @@ class Server:
             self.emit('error', text=f'{message["typ"]}: {e}')
 
     async def close(self):
+        if self._orphan_task is not None:
+            self._orphan_task.cancel()
         for task in list(self._tasks):
             task.cancel()
         if self._writer is not None:

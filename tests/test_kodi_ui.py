@@ -163,3 +163,77 @@ def test_fensterwechsel_folgt_kodis_verlauf(monkeypatch):
     assert history.stack == ['kodi-hauptmenue', 'home']
     ui.close_all()
     assert history.stack == ['kodi-hauptmenue']
+
+
+def test_start_des_anrufprozesses_reagiert_auf_kodis_abbruch(monkeypatch):
+    """Startet man das Add-on erneut, fordert Kodi die alte Instanz zum Beenden auf und schießt sie nach 5 s ab."""
+    seen = {}
+
+    class FakeWorker:
+        def start(self, should_abort=None):
+            seen['should_abort'] = should_abort
+
+    monkeypatch.setattr(kodi_ui, 'make_worker', lambda on_event: FakeWorker())
+    c = controller()
+    c.events = None
+    assert c.start_worker() is True
+    assert callable(seen['should_abort']) and seen['should_abort']() is False
+
+
+def test_zweiter_start_holt_die_laufende_instanz_nach_vorn():
+    """Ein zweiter Start (z. B. per Kore) beendet sich und bittet die laufende Instanz, ihr Fenster zu zeigen."""
+    import queue
+
+    import xbmcgui
+
+    from tgc.appstate import AppState
+
+    class Fav:
+        ids = []
+
+    raised = []
+    c = controller()
+    c.events = queue.Queue()
+    c.state = AppState(Fav())
+    c.ui = type('Ui', (), {'raise_top': lambda self: raised.append(True)})()
+    xbmcgui.Window(10000).setProperty(kodi_ui.RAISE_PROPERTY, '1')
+    c.process(0.0)
+    assert raised == [True]
+    assert xbmcgui.Window(10000).getProperty(kodi_ui.RAISE_PROPERTY) == ''
+
+
+def test_visualisierung_verdeckt_den_anruf_nicht():
+    """Party Video (oder Kodi) schaltet beim Anrufton auf die Visualisierung; im Anruf holt sich das Add-on zurück."""
+    import queue
+
+    from tgc.appstate import AppState
+
+    class Fav:
+        ids = []
+
+    raised = []
+    c = controller()
+    c.events = queue.Queue()
+    c.state = AppState(Fav())
+    c.ui = type('Ui', (), {'raise_top': lambda self: raised.append(True), 'refresh_call': lambda self: None})()
+    xbmc.conditions.add('Window.IsActive(visualisation)')
+    try:
+        c.process(0.0)
+        assert raised == []  # ohne Anruf darf Musik ihre Visualisierung behalten
+        c.state.call = {'id': 1, 'name': 'A', 'bild': '', 'status': 'Wählt …', 'since': None,
+                        'stumm': False, 'ended_at': None}
+        c.process(0.1)
+        assert raised == [True]
+    finally:
+        xbmc.conditions.clear()
+
+
+def test_party_video_schaltet_waehrend_des_anrufs_nicht_um():
+    """visualization.partyvideo prüft partyvideo.suppress am Home-Fenster (docs/bot-api.md dort)."""
+    import xbmcgui
+
+    c = controller()
+    c.execute(('screensaver', False))  # Klingeln oder Anruf beginnt
+    assert xbmcgui.Window(10000).getProperty('partyvideo.suppress') == 'script.telegram.calls'
+    c.execute(('screensaver', True))   # Anruf vorbei, Absturz oder Beenden
+    assert xbmcgui.Window(10000).getProperty('partyvideo.suppress') == ''

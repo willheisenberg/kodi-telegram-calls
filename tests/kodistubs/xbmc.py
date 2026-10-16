@@ -2,6 +2,11 @@
 LOGINFO, LOGERROR = 1, 3
 builtins = []
 rpc_results = {}
+conditions = set()  # Tests tragen hier ein, welche getCondVisibility-Ausdrücke wahr sind
+
+
+def getCondVisibility(expression):
+    return expression in conditions
 
 
 def log(message, level=LOGINFO):

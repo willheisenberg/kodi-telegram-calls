@@ -122,3 +122,46 @@ def test_alter_socket_wird_ersetzt_und_ist_privat(tmp_path):
 
     assert asyncio.run(scenario()) == 0o600
     assert not path.exists()
+
+
+def test_ohne_addon_meldet_der_server_sich_verwaist(tmp_path):
+    """Wird das Add-on abgeschossen, darf der Anrufprozess nicht als Waise die Sperre halten."""
+    async def scenario():
+        orphaned = asyncio.Event()
+
+        async def on_command(message):
+            pass
+
+        server = Server(str(tmp_path / 'w.sock'), on_command, on_orphaned=orphaned.set, orphan_timeout=0.1)
+        await server.start()
+        reader, writer = await connect(str(tmp_path / 'w.sock'))
+        await asyncio.sleep(0.05)
+        writer.close()
+        await writer.wait_closed()
+        await asyncio.wait_for(orphaned.wait(), 2)
+        await server.close()
+
+    asyncio.run(scenario())
+
+
+def test_schnelles_wiederverbinden_ist_keine_verwaisung(tmp_path):
+    async def scenario():
+        orphaned = asyncio.Event()
+
+        async def on_command(message):
+            pass
+
+        server = Server(str(tmp_path / 'w.sock'), on_command, on_orphaned=orphaned.set, orphan_timeout=0.3)
+        await server.start()
+        reader, writer = await connect(str(tmp_path / 'w.sock'))
+        writer.close()
+        await writer.wait_closed()
+        reader2, writer2 = await connect(str(tmp_path / 'w.sock'))
+        await asyncio.sleep(0.5)
+        result = orphaned.is_set()
+        writer2.close()
+        await writer2.wait_closed()
+        await server.close()
+        return result
+
+    assert asyncio.run(scenario()) is False

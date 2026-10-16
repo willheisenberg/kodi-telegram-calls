@@ -29,3 +29,20 @@ class WindowXMLDialog(WindowXML):
 
 class Dialog:
     pass
+
+
+class Window:
+    """Attrappe für xbmcgui.Window(10000): Fenstereigenschaften als gemeinsames Wörterbuch."""
+    properties = {}
+
+    def __init__(self, window_id):
+        self.window_id = window_id
+
+    def getProperty(self, key):
+        return Window.properties.get(key, '')
+
+    def setProperty(self, key, value):
+        Window.properties[key] = value
+
+    def clearProperty(self, key):
+        Window.properties.pop(key, None)
