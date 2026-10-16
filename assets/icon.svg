@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Icon von Telegram-Anrufe: Papierflieger im Telegram-Stil, Hörer aus Material Icons "call" (Apache-2.0).
+     PNG erzeugen: tools/make_icon.sh -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="blau" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#37AEE2"/>
+      <stop offset="1" stop-color="#1E96C8"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="248" fill="url(#blau)"/>
+  <!-- Papierflieger -->
+  <g transform="translate(-22 -26)">
+  <path d="M104 246 L370 132 Q386 126 383 143 L334 376 Q329 392 314 383 L246 333 L212 366
+           Q203 374 200 361 L196 296 L327 174 L180 278 L110 260 Q94 254 104 246 Z"
+        fill="#FFFFFF"/>
+  <path d="M196 296 L200 361 Q203 374 212 366 L246 333 Z" fill="#D2E6F2"/>
+  </g>
+  <!-- Abzeichen mit Hörer -->
+  <circle cx="392" cy="392" r="98" fill="#1E96C8"/>
+  <circle cx="392" cy="392" r="86" fill="#FFFFFF"/>
+  <g transform="translate(332 332) scale(5)" fill="#2AABEE">
+    <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+pytest
+ruff
+numpy
+livekit==1.1.21
+qrcode==8.2
+pypng==0.20220715.0
+telethon==1.45.0
+py-tgcalls==3.0.0
+ntgcalls==3.0.3

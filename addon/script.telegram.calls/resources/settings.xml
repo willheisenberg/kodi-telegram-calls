@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings version="1">
+    <section id="script.telegram.calls">
+        <category id="telegram" label="30000">
+            <group id="1">
+                <setting id="api_id" type="integer" label="30001">
+                    <level>0</level>
+                    <default>0</default>
+                    <control type="edit" format="integer">
+                        <heading>30001</heading>
+                    </control>
+                </setting>
+                <setting id="api_hash" type="string" label="30002">
+                    <level>0</level>
+                    <default/>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string">
+                        <heading>30002</heading>
+                        <hidden>true</hidden>
+                    </control>
+                </setting>
+                <setting id="abmelden" type="action" label="30003">
+                    <level>0</level>
+                    <data>RunScript(script.telegram.calls,logout)</data>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                </setting>
+            </group>
+        </category>
+        <category id="ton" label="30010">
+            <group id="1">
+                <setting id="direkte_ausgabe" type="boolean" label="30011" help="30017">
+                    <level>0</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="echo" type="string" label="30012">
+                    <level>0</level>
+                    <default>webrtc</default>
+                    <constraints>
+                        <options>
+                            <option label="30013">webrtc</option>
+                            <option label="30014">daempfen</option>
+                            <option label="30015">aus</option>
+                        </options>
+                    </constraints>
+                    <control type="spinner" format="string"/>
+                </setting>
+                <setting id="mikrofon" type="string" label="30016">
+                    <level>2</level>
+                    <default>plughw:CARD=Webcam,DEV=0</default>
+                    <control type="edit" format="string">
+                        <heading>30016</heading>
+                    </control>
+                </setting>
+            </group>
+        </category>
+    </section>
+</settings>

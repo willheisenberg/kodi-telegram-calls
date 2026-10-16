@@ -1,0 +1,16 @@
+# Zugangsdaten und Sessions – nie ins Repo
+config.ini
+*.session
+*.session-journal
+
+# Gebaute oder lokale Dinge
+addon/script.telegram.calls/vendor/
+spike/vendor/
+spike/anruf.sdp
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# Arbeitsordner der Plan-Ausführung
+.superpowers/

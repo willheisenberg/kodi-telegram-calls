@@ -1,0 +1,52 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: de_DE\n"
+
+msgctxt "#30000"
+msgid "Telegram"
+msgstr "Telegram"
+
+msgctxt "#30001"
+msgid "api_id (my.telegram.org)"
+msgstr "api_id (my.telegram.org)"
+
+msgctxt "#30002"
+msgid "api_hash (my.telegram.org)"
+msgstr "api_hash (my.telegram.org)"
+
+msgctxt "#30003"
+msgid "Log out this device"
+msgstr "Dieses Gerät abmelden"
+
+msgctxt "#30010"
+msgid "Audio"
+msgstr "Ton"
+
+msgctxt "#30011"
+msgid "Direct output when HDMI is free"
+msgstr "Direkte Ausgabe, wenn HDMI frei ist"
+
+msgctxt "#30012"
+msgid "Echo handling"
+msgstr "Echo-Verfahren"
+
+msgctxt "#30013"
+msgid "WebRTC echo cancellation"
+msgstr "WebRTC-Echounterdrückung"
+
+msgctxt "#30014"
+msgid "Duck microphone"
+msgstr "Mikrofon dämpfen"
+
+msgctxt "#30015"
+msgid "Off"
+msgstr "Aus"
+
+msgctxt "#30016"
+msgid "Microphone (ALSA device)"
+msgstr "Mikrofon (ALSA-Gerät)"
+
+msgctxt "#30017"
+msgid "Shorter delay. Kodi's own volume control does not apply then."
+msgstr "Kürzere Verzögerung. Kodis Lautstärkeregler wirkt dann nicht."

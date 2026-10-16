@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Anrufbildschirm: Bild, Name, Status, Stumm, Auflegen. Schriften: siehe tgc/skin.py -->
+<window>
+    <defaultcontrol always="true">201</defaultcontrol>
+    <controls>
+        <control type="image">
+            <left>0</left><top>0</top><width>1920</width><height>1080</height>
+            <texture colordiffuse="FF101820">tgc-white.png</texture>
+        </control>
+        <control type="image" id="100">
+            <left>760</left><top>120</top><width>400</width><height>400</height>
+            <aspectratio>scale</aspectratio>
+            <texture diffuse="tgc-kreis.png">tgc-avatar.png</texture>
+        </control>
+        <control type="label" id="101">
+            <left>160</left><top>560</top><width>1600</width><height>110</height>
+            <align>center</align><font>$FONT_RIESIG$</font><textcolor>FFFFFFFF</textcolor>
+        </control>
+        <control type="label" id="102">
+            <left>160</left><top>680</top><width>1600</width><height>80</height>
+            <align>center</align><font>$FONT_MITTEL$</font><textcolor>FFB0BEC5</textcolor>
+        </control>
+        <control type="button" id="200">
+            <left>560</left><top>840</top><width>380</width><height>110</height>
+            <onright>201</onright>
+            <font>$FONT_MITTEL$</font><align>center</align><aligny>center</aligny>
+            <textcolor>FFFFFFFF</textcolor><focusedcolor>FFFFFFFF</focusedcolor>
+            <texturefocus colordiffuse="FF2AABEE">tgc-white.png</texturefocus>
+            <texturenofocus colordiffuse="FF263238">tgc-white.png</texturenofocus>
+            <label>Stumm</label>
+        </control>
+        <control type="button" id="201">
+            <left>980</left><top>840</top><width>380</width><height>110</height>
+            <onleft>200</onleft>
+            <font>$FONT_MITTEL$</font><align>center</align><aligny>center</aligny>
+            <textcolor>FFFFFFFF</textcolor><focusedcolor>FFFFFFFF</focusedcolor>
+            <texturefocus colordiffuse="FFE53935">tgc-white.png</texturefocus>
+            <texturenofocus colordiffuse="FF5D2A2A">tgc-white.png</texturenofocus>
+            <label>Auflegen</label>
+        </control>
+    </controls>
+</window>

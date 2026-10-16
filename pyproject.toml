@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+    "addon/script.telegram.calls/resources/lib",
+    "addon/script.telegram.calls/worker",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = ["addon/script.telegram.calls/vendor", "spike", ".superpowers"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tgc", "audio", "callmanager", "echo", "main", "mic", "ringtone", "rtp", "server",
+                     "session", "sinks", "tgbackend"]

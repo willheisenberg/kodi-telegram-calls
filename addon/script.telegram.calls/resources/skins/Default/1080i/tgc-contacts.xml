@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Alle Kontakte: Personen, darunter Gruppen (ausgegraut). Schriften: siehe tgc/skin.py -->
+<window>
+    <defaultcontrol always="true">100</defaultcontrol>
+    <controls>
+        <control type="image">
+            <left>0</left><top>0</top><width>1920</width><height>1080</height>
+            <texture colordiffuse="FF101820">tgc-white.png</texture>
+        </control>
+        <control type="label">
+            <left>90</left><top>50</top><width>1000</width><height>90</height>
+            <font>$FONT_GROSS$</font><textcolor>FFFFFFFF</textcolor>
+            <label>Alle Kontakte</label>
+        </control>
+        <control type="label" id="200">
+            <left>1000</left><top>70</top><width>830</width><height>60</height>
+            <align>right</align><font>$FONT_KLEIN$</font><textcolor>FFFFB300</textcolor>
+        </control>
+        <control type="list" id="100">
+            <left>90</left><top>170</top><width>1740</width><height>880</height>
+            <orientation>vertical</orientation>
+            <scrolltime>150</scrolltime>
+            <itemlayout height="110">
+                <control type="image">
+                    <left>10</left><top>10</top><width>90</width><height>90</height>
+                    <aspectratio>scale</aspectratio>
+                    <texture diffuse="tgc-kreis.png" fallback="tgc-avatar.png">$INFO[ListItem.Art(thumb)]</texture>
+                </control>
+                <control type="label">
+                    <left>130</left><top>0</top><width>1000</width><height>110</height>
+                    <aligny>center</aligny><font>$FONT_MITTEL$</font><textcolor>FFB0BEC5</textcolor>
+                    <label>$INFO[ListItem.Label]</label>
+                </control>
+                <control type="label">
+                    <left>1140</left><top>0</top><width>580</width><height>110</height>
+                    <align>right</align><aligny>center</aligny><font>$FONT_KLEIN$</font><textcolor>FF78909C</textcolor>
+                    <label>$INFO[ListItem.Label2]</label>
+                </control>
+            </itemlayout>
+            <focusedlayout height="110">
+                <control type="image">
+                    <left>0</left><top>0</top><width>1740</width><height>110</height>
+                    <texture colordiffuse="FF2AABEE">tgc-white.png</texture>
+                </control>
+                <control type="image">
+                    <left>10</left><top>10</top><width>90</width><height>90</height>
+                    <aspectratio>scale</aspectratio>
+                    <texture diffuse="tgc-kreis.png" fallback="tgc-avatar.png">$INFO[ListItem.Art(thumb)]</texture>
+                </control>
+                <control type="label">
+                    <left>130</left><top>0</top><width>1000</width><height>110</height>
+                    <aligny>center</aligny><font>$FONT_MITTEL$</font><textcolor>FFFFFFFF</textcolor>
+                    <label>$INFO[ListItem.Label]</label>
+                </control>
+                <control type="label">
+                    <left>1140</left><top>0</top><width>580</width><height>110</height>
+                    <align>right</align><aligny>center</aligny><font>$FONT_KLEIN$</font><textcolor>FFFFFFFF</textcolor>
+                    <label>$INFO[ListItem.Label2]</label>
+                </control>
+            </focusedlayout>
+        </control>
+    </controls>
+</window>

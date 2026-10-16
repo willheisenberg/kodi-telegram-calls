@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Anmeldung: QR-Code, alternativ Telefonnummer. Schriften: siehe tgc/skin.py -->
+<window>
+    <defaultcontrol always="true">200</defaultcontrol>
+    <controls>
+        <control type="image">
+            <left>0</left><top>0</top><width>1920</width><height>1080</height>
+            <texture colordiffuse="FF101820">tgc-white.png</texture>
+        </control>
+        <control type="label">
+            <left>90</left><top>50</top><width>1740</width><height>90</height>
+            <font>$FONT_GROSS$</font><textcolor>FFFFFFFF</textcolor>
+            <label>Bei Telegram anmelden</label>
+        </control>
+        <control type="image">
+            <left>90</left><top>200</top><width>640</width><height>640</height>
+            <texture colordiffuse="FFFFFFFF">tgc-white.png</texture>
+        </control>
+        <control type="image" id="100">
+            <left>110</left><top>220</top><width>600</width><height>600</height>
+            <aspectratio>keep</aspectratio>
+        </control>
+        <control type="label">
+            <left>820</left><top>220</top><width>1010</width><height>500</height>
+            <wrapmultiline>true</wrapmultiline><font>$FONT_MITTEL$</font><textcolor>FFECEFF1</textcolor>
+            <label>Öffne Telegram auf dem Handy:[CR]Einstellungen → Geräte → Gerät verbinden[CR][CR]und scanne den Code. Er erneuert sich von selbst.</label>
+        </control>
+        <control type="button" id="200">
+            <left>820</left><top>740</top><width>800</width><height>100</height>
+            <font>$FONT_MITTEL$</font><align>center</align><aligny>center</aligny>
+            <textcolor>FFFFFFFF</textcolor><focusedcolor>FFFFFFFF</focusedcolor>
+            <texturefocus colordiffuse="FF2AABEE">tgc-white.png</texturefocus>
+            <texturenofocus colordiffuse="FF263238">tgc-white.png</texturenofocus>
+            <label>Mit Telefonnummer anmelden</label>
+        </control>
+    </controls>
+</window>
