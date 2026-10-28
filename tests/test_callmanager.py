@@ -187,7 +187,62 @@ def test_eingehend_klingeln_und_annehmen():
     assert rang is True and audio.ringing is False
     assert backend.accepted == [9]
     assert types(events)[-1] == 'connected'
-    assert len(audio.sinks) == 1  # Klingelton und Gespräch nutzen dieselbe Ausgabe
+    # Dieselbe Ausgabe bleibt offen: Ein Stopp der Kodi-Wiedergabe sähe für andere (KodiMediaBot) wie
+    # ein abgebrochenes Radio aus, und der Bot startete es mitten im Gespräch neu.
+    assert len(audio.sinks) == 1 and not audio.sinks[0].stopped
+
+
+def test_nach_dem_annehmen_fuellt_stille_bis_zum_ersten_ton():
+    # Ohne Daten meldet Kodi "stream stalled" und puffert danach nach: Sekunden Verzögerung im Gespräch.
+    async def scenario():
+        manager, backend, audio, events = setup()
+        await manager.on_incoming(9)
+        await asyncio.sleep(0.01)
+        await manager.accept()
+        sink = audio.sinks[0]
+        before = len(sink.written)
+        await asyncio.sleep(0.4)
+        filled = b''.join(sink.written[before:])
+        manager.on_frames(9, b'\x01' * 1920)
+        return sink, filled, audio
+
+    sink, filled, audio = run(scenario())
+    assert len(filled) >= 0.2 * 192000 and filled == bytes(len(filled))
+    assert sink.written[-1] == b'\x01' * 1920
+    # Die Echounterdrückung bekommt die Stille als Referenz, sonst verrutscht ihr Zeitbezug.
+    assert sum(map(len, audio.echo.references)) > 0
+
+
+def test_luecke_mitten_im_gespraech_wird_gefuellt():
+    async def scenario():
+        manager, backend, audio, events = setup()
+        await manager.call(7)
+        sink = audio.sinks[0]
+        for _ in range(5):
+            manager.on_frames(7, b'\x01' * 1920)
+        before = len(sink.written)
+        await asyncio.sleep(0.4)
+        return b''.join(sink.written[before:])
+
+    filled = run(scenario())
+    assert len(filled) >= 0.2 * 192000 and filled == bytes(len(filled))
+
+
+def test_auflegen_vor_dem_ersten_ton_beendet_die_stille():
+    async def scenario():
+        manager, backend, audio, events = setup()
+        await manager.on_incoming(9)
+        await asyncio.sleep(0.01)
+        await manager.accept()
+        await asyncio.sleep(0.2)
+        await manager.hangup()
+        sink = audio.sinks[0]
+        count = len(sink.written)
+        await asyncio.sleep(0.3)
+        return sink, count
+
+    sink, count = run(scenario())
+    assert sink.stopped and len(sink.written) == count
 
 
 def test_zweiter_anruf_wird_abgewiesen():
@@ -331,3 +386,16 @@ def test_befehle_ohne_anruf_tun_nichts(method):
     manager, backend, audio, events = setup()
     run(getattr(manager, method)())
     assert events == [] and backend.hung_up == []
+
+
+def test_unerwarteter_fehler_beim_waehlen_beendet_den_anruf():
+    """Ein Fehler, den das Backend nicht kennt, darf den Anruf nicht in 'Wählt …' hängen lassen."""
+    manager, backend, audio, events = setup()
+
+    async def broken(user_id, timeout):
+        raise RuntimeError('unbekannt')
+
+    backend.start_call = broken
+    run(manager.call(7))
+    assert events[-1] == ('ended', {'grund': 'fehler'})
+    assert manager.state is State.IDLE and backend.hung_up == [7]

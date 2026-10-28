@@ -24,6 +24,7 @@ GRUND = {
     'keine_antwort': 'Keine Antwort',
     'verpasst': 'Verpasst',
     'abgebrochen': 'Verbindung abgebrochen',
+    'privatsphaere': 'Anrufe nicht erlaubt (Datenschutz)',
     'tonausgabe': 'Tonausgabe fehlgeschlagen',
     'fehler': 'Fehler beim Verbinden',
 }

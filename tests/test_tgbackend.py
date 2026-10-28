@@ -74,3 +74,12 @@ def test_mikrofon_geht_als_externer_frame_raus():
     calls = FakeCalls()
     asyncio.run(backend(calls).send_audio(7, b'ab'))
     assert calls.frames == [(7, tgbackend.Device.MICROPHONE, b'ab')]
+
+
+def test_datenschutz_sperre_wird_zum_eigenen_grund():
+    """Telegram verweigert den Anruf, wenn die Person Anrufe in ihren Datenschutzeinstellungen gesperrt hat."""
+    from telethon.errors import UserPrivacyRestrictedError
+
+    with pytest.raises(CallFailed) as info:
+        asyncio.run(backend(FakeCalls(play_error=UserPrivacyRestrictedError(None))).start_call(7, 45))
+    assert info.value.grund == 'privatsphaere'

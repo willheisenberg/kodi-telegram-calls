@@ -237,3 +237,44 @@ def test_party_video_schaltet_waehrend_des_anrufs_nicht_um():
     assert xbmcgui.Window(10000).getProperty('partyvideo.suppress') == 'script.telegram.calls'
     c.execute(('screensaver', True))   # Anruf vorbei, Absturz oder Beenden
     assert xbmcgui.Window(10000).getProperty('partyvideo.suppress') == ''
+
+
+def test_klingeldialog_wird_beim_nachvornholen_nicht_neu_gezeigt(monkeypatch):
+    """Neu zeigen setzt den Fokus auf 'Annehmen' zurück; ein Dialog liegt ohnehin über jedem Fenster."""
+    history = KodiHistory()
+    monkeypatch.setattr(kodi_ui.Ui, 'FILES', {n: ('x.xml', history.screen_class(n))
+                                              for n in ('login', 'home', 'contacts', 'call')})
+    ui = kodi_ui.Ui(push=None, state=None, root='/r')
+    ui.show('home')
+    shown = []
+    ui._ring = type('Ring', (), {'show': lambda self: shown.append(True)})()
+    ui.raise_top()
+    assert shown == []
+
+
+def test_visualisierung_wird_nur_einmal_verdraengt_nicht_jede_zehntelsekunde():
+    import queue
+
+    from tgc.appstate import AppState
+
+    class Fav:
+        ids = []
+
+    raised = []
+    c = controller()
+    c.events = queue.Queue()
+    c.state = AppState(Fav())
+    c.ui = type('Ui', (), {'raise_top': lambda self: raised.append(True), 'refresh_call': lambda self: None})()
+    c.state.ringing = {'id': 1, 'name': 'A', 'bild': ''}
+    xbmc.conditions.add('Window.IsActive(visualisation)')
+    try:
+        for i in range(5):
+            c.process(i * 0.1)
+        assert raised == [True]
+        xbmc.conditions.clear()
+        c.process(0.6)
+        xbmc.conditions.add('Window.IsActive(visualisation)')
+        c.process(0.7)  # erneut aufgetaucht: wieder verdrängen
+        assert raised == [True, True]
+    finally:
+        xbmc.conditions.clear()

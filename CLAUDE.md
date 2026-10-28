@@ -54,4 +54,5 @@ Wohnzimmer-Pi und wird parallel genutzt. Dort laufen unter anderem Soloist
 - **Echo:** Das Webcam-Mikrofon hört die Boxen; die Gegenseite hört sich
   selbst um die ganze Runde verspätet. Noch keine Echounterdrückung.
 - Webcam-Mikrofon: ALSA-Regler `Mic Capture Volume` stand auf 0 von 15, am
-  2026-10-15 auf 10 gesetzt. Gilt bis zum Abstecken.
+  2026-10-15 auf 10 gesetzt. Die C922 setzt ihn beim Wieder-Anstecken auf 0;
+  seit 2026-10-28 stellt der Anrufprozess ihn dann selbst auf 10 (`mic.mic_ok`).

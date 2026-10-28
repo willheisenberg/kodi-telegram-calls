@@ -186,3 +186,10 @@ def test_kontaktsuche():
     assert state.find_contact('lipp') == 1
     assert state.find_contact('xyz') is None
     assert state.find_contact('  ') is None
+
+
+def test_datenschutz_grund_hat_einen_text():
+    state = logged_in()
+    state.on_user('call', 0, id=2)
+    state.on_event({'typ': 'ended', 'grund': 'privatsphaere'}, 1)
+    assert 'Datenschutz' in state.call_status(1)

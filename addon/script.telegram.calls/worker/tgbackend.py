@@ -11,6 +11,7 @@ from pytgcalls import filters as fl
 from pytgcalls.types import CallConfig, ChatUpdate, Device, Direction
 from pytgcalls.types.raw import AudioParameters, AudioStream, Stream
 from telethon import events
+from telethon.errors import UserPrivacyRestrictedError
 from telethon.tl.types import PhoneCallWaiting, UpdatePhoneCall
 
 from callmanager import CallFailed
@@ -70,6 +71,8 @@ class TgCallsBackend:
             raise CallFailed('besetzt') from None
         except exceptions.CallDiscarded:
             raise CallFailed('abgebrochen') from None
+        except UserPrivacyRestrictedError:
+            raise CallFailed('privatsphaere') from None  # Person erlaubt keine Anrufe von dir
         await self._record(user_id)
 
     async def accept(self, user_id):

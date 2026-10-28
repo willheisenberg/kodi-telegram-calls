@@ -203,9 +203,11 @@ direkte Ausgabe wird nur genommen, wenn der Ausgang gerade frei ist.
 
 ### Webcam-Regler
 
-Der Anrufprozess liest beim Start `Mic Capture Volume` der Webcam. Steht er
-auf 0, meldet er `status {mikrofon_ok: false}` und das Add-on zeigt einen
-Hinweis. Der Regler wird nicht von selbst verstellt.
+Der Anrufprozess liest `Mic Capture Volume` der Webcam regelmäßig. Steht er
+auf 0 (die C922 setzt ihn beim Wieder-Anstecken zurück), stellt er ihn auf 10
+von 15. Erst wenn die Webcam fehlt oder sich der Regler nicht stellen lässt,
+meldet er `status {mikrofon_ok: false}` und das Add-on zeigt einen Hinweis.
+(Geändert am 2026-10-28 auf Wunsch des Nutzers; vorher nur Hinweis.)
 
 ## Sicherheit
 

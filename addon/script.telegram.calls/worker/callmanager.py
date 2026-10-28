@@ -2,18 +2,20 @@
 
 Ohne Telegram testbar: Telegram steckt hinter dem Backend (tgbackend.py), der
 Ton hinter der AudioFactory (audio.py). Gründe in 'ended': aufgelegt, beendet,
-abgelehnt, besetzt, keine_antwort, verpasst, abgebrochen, tonausgabe, fehler.
+abgelehnt, besetzt, keine_antwort, verpasst, abgebrochen, privatsphaere, tonausgabe, fehler.
 """
 import asyncio
 import enum
 import logging
 
 from echo import stereo_to_mono
+from gapfill import GapFiller
 from sinks import SinkError
 
 log = logging.getLogger('worker.call')
 
 RING_TIMEOUT = 45
+FILL_TICK_S = 0.02
 
 
 class CallFailed(Exception):
@@ -42,6 +44,8 @@ class CallManager:
         self._echo = None
         self._mic = None
         self._ring_task = None
+        self._filler = None
+        self._fill_task = None
         self._timeout_task = None
         self._dial_task = None
         self._muted = False
@@ -65,6 +69,12 @@ class CallManager:
             return
         except asyncio.CancelledError:
             return  # hangup() hat aufgelegt und aufgeräumt
+        except Exception:
+            # Unbekannter Fehler von Telegram: nicht in "Wählt …" hängen bleiben.
+            log.exception('Anruf ließ sich nicht aufbauen')
+            await self._hang_up_quietly(user_id)
+            await self._end('fehler')
+            return
         finally:
             self._dial_task = None
         if self.state is State.OUTGOING and self.peer == user_id:
@@ -74,6 +84,9 @@ class CallManager:
         if self.state is not State.INCOMING:
             return
         self._stop_ringing()
+        # Dieselbe Ausgabe weiterbenutzen und schon bis zum ersten Gesprächston Lücken füllen: Ein Stopp
+        # der Kodi-Wiedergabe hält der KodiMediaBot für ein abgebrochenes Radio und startet es nach 5 s neu.
+        self._start_filling()
         user_id = self.peer
         try:
             await self._backend.accept(user_id)
@@ -142,7 +155,8 @@ class CallManager:
         if self.state is not State.CONNECTED or user_id != self.peer or self._sink is None:
             return
         try:
-            self._sink.write(pcm)
+            if not self._filler.write(pcm):
+                return
         except SinkError as e:
             if not self._sink_failed:
                 self._sink_failed = True
@@ -191,9 +205,27 @@ class CallManager:
         self._muted = False
         self._sink_failed = False
         self.state = State.CONNECTED
+        self._start_filling()
         self._mic = self._audio.make_mic(self._on_mic_frame)
         self._mic.start()
         self._emit('connected')
+
+    def _start_filling(self):
+        if self._filler is None and self._sink is not None:
+            self._filler = GapFiller(self._sink, on_silence=self._silence_reference)
+            self._fill_task = asyncio.create_task(self._fill_loop(self._filler))
+
+    async def _fill_loop(self, filler):
+        try:
+            while True:
+                filler.tick()
+                await asyncio.sleep(FILL_TICK_S)
+        except SinkError:
+            pass  # meldet on_frames beim nächsten Block
+
+    def _silence_reference(self, silence):
+        if self._echo is not None:
+            self._echo.add_reference(stereo_to_mono(silence))
 
     async def _ring_timeout_after(self, user_id):
         await asyncio.sleep(self._ring_timeout)
@@ -215,10 +247,10 @@ class CallManager:
             log.exception('Auflegen fehlgeschlagen')
 
     def _stop_ringing(self):
-        for task in (self._ring_task, self._timeout_task):
+        for task in (self._ring_task, self._timeout_task, self._fill_task):
             if task is not None:
                 task.cancel()
-        self._ring_task = self._timeout_task = None
+        self._ring_task = self._timeout_task = self._fill_task = self._filler = None
 
     async def _end(self, grund):
         if self.state is State.IDLE:

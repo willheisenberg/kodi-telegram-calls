@@ -64,3 +64,40 @@ def test_mic_ok(tmp_path):
     assert mic.mic_ok('Webcam', str(cards), run=fake_amixer(0)) is False
     cards.write_text(' 0 [vc4hdmi0       ]: vc4-hdmi\n')
     assert mic.mic_ok('Webcam', str(cards), run=fake_amixer(10)) is False
+
+
+class StatefulAmixer:
+    """Merkt sich den Reglerwert; cset verstellt ihn, wenn es klappen soll."""
+
+    def __init__(self, value, settable=True):
+        self.value, self.settable, self.sets = value, settable, []
+
+    def __call__(self, args, **kwargs):
+        if 'cset' in args:
+            self.sets.append(args[-1])
+            if self.settable:
+                self.value = int(args[-1])
+        return subprocess.CompletedProcess(args, 0, stdout=AMIXER_OUTPUT % self.value, stderr='')
+
+
+def test_regler_auf_null_wird_auf_zehn_gestellt(tmp_path):
+    # Die C922 setzt den Regler beim Wieder-Anstecken auf 0; dann hört die Gegenseite nichts.
+    cards = tmp_path / 'cards'
+    cards.write_text(' 2 [Webcam         ]: USB-Audio - C922\n')
+    amixer = StatefulAmixer(0)
+    assert mic.mic_ok('Webcam', str(cards), run=amixer) is True
+    assert amixer.sets == ['10'] and amixer.value == 10
+
+
+def test_eingestellter_regler_bleibt_unberuehrt(tmp_path):
+    cards = tmp_path / 'cards'
+    cards.write_text(' 2 [Webcam         ]: USB-Audio - C922\n')
+    amixer = StatefulAmixer(4)
+    assert mic.mic_ok('Webcam', str(cards), run=amixer) is True
+    assert amixer.sets == []
+
+
+def test_regler_laesst_sich_nicht_stellen(tmp_path):
+    cards = tmp_path / 'cards'
+    cards.write_text(' 2 [Webcam         ]: USB-Audio - C922\n')
+    assert mic.mic_ok('Webcam', str(cards), run=StatefulAmixer(0, settable=False)) is False

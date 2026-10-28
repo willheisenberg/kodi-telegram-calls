@@ -281,8 +281,8 @@ class Ui:
         """Oberstes Fenster wieder zeigen, z. B. nachdem man in Kodi woanders hin gewechselt ist."""
         if self._stack:
             self._screens[self._stack[-1]].show()
-        if self._ring is not None:
-            self._ring.show()
+        # Den Klingeldialog nicht neu zeigen: er liegt ohnehin über jedem Fenster, und neu zeigen
+        # setzt den Fokus auf "Annehmen" zurück.
 
     def refresh(self):
         if self._stack:
@@ -376,11 +376,14 @@ class Controller:
         if home.getProperty(RAISE_PROPERTY):
             home.clearProperty(RAISE_PROPERTY)
             self.ui.raise_top()
-        elif (self.state.call is not None or self.state.ringing is not None) and xbmc.getCondVisibility(
-                'Window.IsActive(visualisation)'):
+        elif self.state.call is not None or self.state.ringing is not None:
             # Der Anrufton läuft über Kodis Player; Visualisierungs-Add-ons (z. B. Party Video) halten ihn
             # für Musik und schalten auf die Visualisierung. Im Anruf gehört der Bildschirm dem Add-on.
-            self.ui.raise_top()
+            # Nur beim Auftauchen verdrängen: dauerndes Neuzeigen setzte den Fokus immer wieder zurück.
+            covered = xbmc.getCondVisibility('Window.IsActive(visualisation)')
+            if covered and not getattr(self, 'visualisation_seen', False):
+                self.ui.raise_top()
+            self.visualisation_seen = covered
         handled = False
         while self.running:
             try:

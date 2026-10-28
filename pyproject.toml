@@ -14,5 +14,5 @@ extend-exclude = ["addon/script.telegram.calls/vendor", "spike", ".superpowers"]
 select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["tgc", "audio", "callmanager", "echo", "main", "mic", "ringtone", "rtp", "server",
+known-first-party = ["tgc", "audio", "callmanager", "echo", "gapfill", "main", "mic", "ringtone", "rtp", "server",
                      "session", "sinks", "tgbackend"]

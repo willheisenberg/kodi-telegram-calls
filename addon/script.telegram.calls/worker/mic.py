@@ -13,6 +13,7 @@ log = logging.getLogger('worker.mic')
 RATE = 48000
 FRAME_BYTES = RATE // 100 * 2
 DEVICE = 'plughw:CARD=Webcam,DEV=0'
+DEFAULT_VOLUME = 10  # von 15, Teilprojekt 1
 
 
 class MicCapture:
@@ -70,8 +71,19 @@ def mic_volume(card, run=subprocess.run):
     return int(match.group(1)) if match else None
 
 
+def set_mic_volume(card, value, run=subprocess.run):
+    try:
+        run(['amixer', '-c', card, 'cset', 'name=Mic Capture Volume', str(value)],
+            capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
 def mic_ok(card, cards_path='/proc/asound/cards', run=subprocess.run):
-    """Karte vorhanden und Regler nicht auf 0 (ein fehlender Regler zählt als in Ordnung)."""
+    """Karte vorhanden und Regler nicht auf 0 (ein fehlender Regler zählt als in Ordnung).
+
+    Die C922 setzt den Regler beim Wieder-Anstecken auf 0; dann wird er auf DEFAULT_VOLUME gestellt.
+    """
     try:
         with open(cards_path) as f:
             cards = f.read()
@@ -79,4 +91,8 @@ def mic_ok(card, cards_path='/proc/asound/cards', run=subprocess.run):
         return False
     if f'[{card}' not in cards:
         return False
+    if mic_volume(card, run) != 0:
+        return True
+    log.info('Mikrofonregler stand auf 0, stelle ihn auf %d', DEFAULT_VOLUME)
+    set_mic_volume(card, DEFAULT_VOLUME, run)
     return mic_volume(card, run) != 0
