@@ -45,6 +45,7 @@ class WorkerClient:
         bis zum Timeout neu gestartet.
         """
         self._stopping = False
+        self._rotate_log()
         deadline = time.monotonic() + self._timeout
         while True:
             self._spawn()
@@ -55,10 +56,17 @@ class WorkerClient:
                 time.sleep(0.5)
         threading.Thread(target=self._read, args=(self._sock,), name='anrufprozess', daemon=True).start()
 
+    def _rotate_log(self):
+        """Log des vorigen Laufs als .1 behalten: nach einem Absturz startet das Add-on sofort neu."""
+        if self._log_path and os.path.exists(self._log_path):
+            os.replace(self._log_path, self._log_path + '.1')
+            os.chmod(self._log_path + '.1', 0o600)
+
     def _spawn(self):
         stderr = subprocess.DEVNULL
         if self._log_path:
-            stderr = os.open(self._log_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            # Anhängen: Wiederholte Versuche (Exit 3) sollen sich nicht gegenseitig löschen.
+            stderr = os.open(self._log_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
         try:
             self._proc = subprocess.Popen(self._argv, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                                           stderr=stderr, env=self._env, start_new_session=True)

@@ -165,3 +165,31 @@ def test_schnelles_wiederverbinden_ist_keine_verwaisung(tmp_path):
         return result
 
     assert asyncio.run(scenario()) is False
+
+
+def test_emit_aus_fremdem_thread_schreibt_in_der_ereignisschleife(tmp_path):
+    # KodiSink.start/stop laufen per asyncio.to_thread und melden play_kodi/stop_kodi; asyncio-Transporte
+    # sind nicht thread-sicher (Abschlussreview). Die Zeile muss trotzdem ankommen.
+    import threading
+
+    async def scenario():
+        async def on_command(message):
+            pass
+
+        server = Server(str(tmp_path / 'w.sock'), on_command)
+        await server.start()
+        reader, writer = await connect(str(tmp_path / 'w.sock'))
+        await asyncio.sleep(0.05)
+        writers = []
+        original = server._writer.write
+        server._writer.write = lambda data: (writers.append(threading.current_thread()), original(data))
+        await asyncio.to_thread(server.emit, 'stop_kodi')
+        event = await read_event(reader)
+        writer.close()
+        await writer.wait_closed()
+        await server.close()
+        return event, writers
+
+    event, writers = asyncio.run(scenario())
+    assert event == {'typ': 'stop_kodi'}
+    assert writers == [threading.main_thread()]

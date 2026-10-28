@@ -87,6 +87,7 @@ class TelegramSession:
         finally:
             if self._login_task is asyncio.current_task():
                 self._login_task = None
+            self._remove_qr_images()  # gescannt, abgebrochen oder abgelaufen: das Bild braucht niemand mehr
         await self._logged_in()
 
     async def login_phone(self, nummer):
@@ -156,13 +157,16 @@ class TelegramSession:
         import qrcode
         import qrcode.image.pure
 
-        for name in os.listdir(self._data_dir):
-            if name.startswith('qr-') and name.endswith('.png'):
-                os.remove(os.path.join(self._data_dir, name))
+        self._remove_qr_images()
         self._qr_count += 1
         path = os.path.join(self._data_dir, f'qr-{self._qr_count}.png')
         qrcode.make(url, image_factory=qrcode.image.pure.PyPNGImage, box_size=12, border=2).save(path)
         return path
+
+    def _remove_qr_images(self):
+        for name in os.listdir(self._data_dir):
+            if name.startswith('qr-') and name.endswith('.png'):
+                os.remove(os.path.join(self._data_dir, name))
 
     # --- Kontakte -------------------------------------------------------
 

@@ -6,8 +6,10 @@ Verbinden nachgeliefert. Jeder Befehl läuft als eigene Aufgabe, damit ein
 langer Befehl (Anmeldung, Wählen) die folgenden (z. B. Auflegen) nicht blockiert.
 """
 import asyncio
+import functools
 import logging
 import os
+import threading
 
 from tgc.protocol import ProtocolError, check_command, decode, encode, redact
 
@@ -28,8 +30,12 @@ class Server:
         self._writer = None
         self._backlog = []
         self._tasks = set()
+        self._loop = None
+        self._loop_thread = None
 
     async def start(self):
+        self._loop = asyncio.get_running_loop()
+        self._loop_thread = threading.get_ident()
         if os.path.exists(self._path):
             os.unlink(self._path)  # Rest eines abgestürzten Prozesses
         old = os.umask(0o177)
@@ -40,6 +46,11 @@ class Server:
         os.chmod(self._path, 0o600)
 
     def emit(self, typ, **data):
+        if self._loop is not None and threading.get_ident() != self._loop_thread:
+            # Aus einem Hilfsthread (z. B. KodiSink über asyncio.to_thread): asyncio-Transporte sind nicht
+            # thread-sicher, also in der Ereignisschleife schreiben.
+            self._loop.call_soon_threadsafe(functools.partial(self.emit, typ, **data))
+            return
         line = encode(typ, **data)
         writer = self._writer
         if writer is None or writer.is_closing():

@@ -84,7 +84,8 @@ def test_qr_wird_erneuert_bis_gescannt(tmp_path):
     qr_events = [d for t, d in events if t == 'qr']
     assert [d['url'] for d in qr_events] == ['tg://login?token=a', 'tg://login?token=1']
     assert qr_events[0]['bild'] != qr_events[1]['bild']
-    assert os.path.exists(qr_events[1]['bild']) and not os.path.exists(qr_events[0]['bild'])
+    # Nach dem Scannen ist kein QR-Bild mehr da (vorher blieb das letzte im Datenordner liegen).
+    assert not os.path.exists(qr_events[1]['bild']) and not os.path.exists(qr_events[0]['bild'])
     assert events[-1] == ('login_ok', {}) and authorized == [True]
 
 
@@ -127,3 +128,9 @@ def test_session_datei_wird_privat(tmp_path):
     sess, events, _ = make(tmp_path, FakeClient(qr=FakeQr([None])))
     asyncio.run(sess.login_qr())
     assert oct(os.stat(path).st_mode & 0o777) == '0o600'
+
+
+def test_qr_bild_verschwindet_auch_bei_abbruch_und_zwei_faktor(tmp_path):
+    sess, events, authorized = make(tmp_path, FakeClient(qr=FakeQr([SessionPasswordNeededError(None)])))
+    asyncio.run(sess.login_qr())
+    assert not [n for n in os.listdir(tmp_path) if n.startswith('qr-')]

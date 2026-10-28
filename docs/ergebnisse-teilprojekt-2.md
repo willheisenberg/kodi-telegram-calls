@@ -94,10 +94,6 @@ Die Einstellung „Direkte Ausgabe, wenn HDMI frei ist“ spart weitere etwa
 
 Alle selten oder Komfort; keine verhindert die Nutzung.
 
-- `Server.emit` wird aus Executor-Threads aufgerufen (`KodiSink.start/stop`
-  über `asyncio.to_thread`); nicht thread-sicher. Sehr selten könnte
-  `stop_kodi` verloren gehen und die SDP-Wiedergabe nach dem Gespräch
-  weiterlaufen. Abhilfe: per `loop.call_soon_threadsafe` melden.
 - Hängt `aplay` beim Beenden, verfällt das 1-s-`join` des Taktgebers; ein
   später `SinkError` des alten Taktgebers könnte den nächsten Anruf beenden.
   Abhilfe: Callback an die Taktgeber-Instanz binden.
@@ -106,8 +102,6 @@ Alle selten oder Komfort; keine verhindert die Nutzung.
 - Nach einem Absturz verdrängt `ready` die Anzeige „Verbindung abgebrochen“
   schon nach 1,5–2 s statt nach 3 s; ein Anruf in diesem Moment wird stumm
   ignoriert.
-- `worker.log` wird bei jedem Start geleert; nach einem Absturz fehlt der
-  Traceback. Abhilfe: vorher nach `worker.log.1` rotieren.
 - Abmelden bei offenem Add-on braucht 20 s bis zur Meldung (Startversuche
   mit Exit 3 bis zum Timeout).
 - Echo: `KODI_DELAY_MS` = 450 stammt aus der Messung vor dem Taktgeber; mit

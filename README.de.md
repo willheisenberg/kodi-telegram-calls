@@ -133,7 +133,7 @@ Kodi-Add-on (Python in Kodi)          Anrufprozess (System-Python, eigener Proze
 ## Fehlersuche
 
 - `addon_data/script.telegram.calls/worker.log` ist das Log des
-  Anrufprozesses; in `kodi.log` stehen die Meldungen des Add-ons mit dem
+  Anrufprozesses (`worker.log.1` das des vorigen Laufs, z. B. vor einem Absturz); in `kodi.log` stehen die Meldungen des Add-ons mit dem
   Präfix `script.telegram.calls:`.
 - „Kein Mikrofon“: prüfen, ob die Webcam angeschlossen ist. Die C922 setzt
   ihren ALSA-Regler `Mic Capture Volume` beim Wieder-Anstecken auf 0; der
@@ -145,7 +145,7 @@ Kodi-Add-on (Python in Kodi)          Anrufprozess (System-Python, eigener Proze
 
 ```
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/pytest -q      # 157 Tests, ohne Kodi und Telegram
+.venv/bin/pytest -q      # 161 Tests, ohne Kodi und Telegram
 .venv/bin/ruff check .
 tools/make_icon.sh       # Icon und Banner aus assets/*.svg (braucht rsvg-convert)
 ```

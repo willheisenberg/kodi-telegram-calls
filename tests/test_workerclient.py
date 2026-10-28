@@ -89,3 +89,34 @@ def test_start_wartet_bis_die_alte_sperre_frei_ist(tmp_path):
     worker.start()
     assert events.get(timeout=5)['typ'] == 'ready'
     worker.stop()
+
+
+def test_log_des_vorigen_laufs_bleibt_als_punkt_eins_erhalten(tmp_path):
+    # Nach einem Absturz startet das Add-on den Anrufprozess sofort neu; vorher löschte das den Traceback.
+    log = tmp_path / 'worker.log'
+    log.write_text('Traceback vom Absturz\n')
+    worker, events = client(tmp_path, log_path=str(log))
+    worker.start()
+    events.get(timeout=5)
+    worker.stop()
+    assert (tmp_path / 'worker.log.1').read_text() == 'Traceback vom Absturz\n'
+    assert 'Traceback' not in log.read_text()
+    assert oct(os.stat(tmp_path / 'worker.log.1').st_mode & 0o777) == '0o600'
+
+
+def test_wiederholte_startversuche_drehen_das_log_nur_einmal(tmp_path):
+    """Exit 3 (Sperre belegt) startet mehrmals; das Log des Absturzes darf dabei nicht verloren gehen."""
+    log = tmp_path / 'worker.log'
+    log.write_text('Traceback vom Absturz\n')
+    marker = tmp_path / 'erster-versuch'
+    script = (f'import os, runpy, sys\n'
+              f'if not os.path.exists({str(marker)!r}):\n'
+              f'    open({str(marker)!r}, "w").close(); print("versuch 1", file=sys.stderr); sys.exit(3)\n'
+              f'sys.argv = [{FAKE!r}, {str(tmp_path)!r}]\n'
+              f'runpy.run_path({FAKE!r}, run_name="__main__")\n')
+    worker, events = client(tmp_path, argv=[sys.executable, '-c', script], log_path=str(log))
+    worker.start()
+    events.get(timeout=5)
+    worker.stop()
+    assert (tmp_path / 'worker.log.1').read_text() == 'Traceback vom Absturz\n'
+    assert 'versuch 1' in log.read_text()
