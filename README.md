@@ -23,7 +23,7 @@ service and no pop-up over other Kodi content.
 | Part | State |
 |---|---|
 | 1. Feasibility test (call from the command line) | done |
-| 2. One-to-one voice calls in the add-on | working, final acceptance test with real calls pending |
+| 2. One-to-one voice calls in the add-on | done (acceptance test with real calls, [results in German](docs/ergebnisse-teilprojekt-2.md)) |
 | 3. One-to-one video, full screen | planned |
 | 4. Group calls | planned |
 
@@ -106,8 +106,11 @@ Kodi add-on (Python in Kodi)          call process (system Python, own process)
 - **48 kHz only:** after an AV receiver is switched on, 44.1 kHz over HDMI can
   sound too high and crackle; ntgcalls 3.0.3 also crashes when receiving at
   44.1 kHz.
-- **Audio through Kodi** by default: about 0.45 s from the network to the
-  speakers on the test setup.
+- **Audio through Kodi** by default: 0.5–0.7 s of delay in Kodi on the test
+  setup. A pacer thread feeds Kodi exactly 10 ms every 10 ms (silence when
+  the far end sends nothing): Kodi plays the SDP file as a file, and after
+  running dry for only ~0.1 s it refills its whole buffer and lags about 7 s
+  for the rest of the call.
 - **Echo cancellation** with the WebRTC audio processing from the
   [LiveKit](https://github.com/livekit/python-sdks) package. The speakers are
   heard by the webcam; the far-end audio is used as reference, delayed by the
@@ -140,7 +143,7 @@ Kodi add-on (Python in Kodi)          call process (system Python, own process)
 
 ```
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/pytest -q      # 152 tests, no Kodi or Telegram needed
+.venv/bin/pytest -q      # 157 tests, no Kodi or Telegram needed
 .venv/bin/ruff check .
 tools/make_icon.sh       # icon and banner from assets/*.svg (needs rsvg-convert)
 ```

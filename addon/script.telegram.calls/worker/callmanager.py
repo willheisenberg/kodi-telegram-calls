@@ -43,6 +43,7 @@ class CallManager:
         self._mic = None
         self._ring_task = None
         self._pacer = None
+        self._generation = 0  # zählt jedes Gesprächsende; erkennt Auflegen während eines await
         self._timeout_task = None
         self._dial_task = None
         self._muted = False
@@ -123,7 +124,10 @@ class CallManager:
     async def on_incoming(self, user_id):
         if self.state is not State.IDLE:
             log.info('Zweiter Anruf während eines Gesprächs: besetzt')
-            await self._hang_up_quietly(user_id)
+            try:
+                await self._backend.reject_busy(user_id)
+            except Exception:
+                log.exception('Zweiten Anruf abweisen fehlgeschlagen')
             return
         self._loop = asyncio.get_running_loop()
         self.state, self.peer = State.INCOMING, user_id
@@ -184,12 +188,19 @@ class CallManager:
     async def _ensure_sink(self):
         if self._sink is not None:
             return True
+        generation = self._generation
         try:
-            self._sink = await asyncio.to_thread(self._audio.open_sink)
+            sink = await asyncio.to_thread(self._audio.open_sink)
         except Exception:
             log.exception('Tonausgabe lässt sich nicht öffnen')
-            await self._fail('tonausgabe')
+            if generation == self._generation:
+                await self._fail('tonausgabe')
             return False
+        if generation != self._generation:
+            # Während des Öffnens aufgelegt oder abgelehnt: sonst bliebe ein Anruf ohne Gegenüber "verbunden".
+            await asyncio.to_thread(sink.stop)
+            return False
+        self._sink = sink
         # Fester 10-ms-Takt in eigenem Thread: Kodi darf nie leerlaufen (pacer.py).
         self._loop = asyncio.get_running_loop()
         self._sink_failed = False
@@ -241,6 +252,7 @@ class CallManager:
     async def _end(self, grund):
         if self.state is State.IDLE:
             return
+        self._generation += 1
         self._stop_ringing()
         mic, pacer, sink = self._mic, self._pacer, self._sink
         self._mic = self._pacer = self._sink = self._echo = None

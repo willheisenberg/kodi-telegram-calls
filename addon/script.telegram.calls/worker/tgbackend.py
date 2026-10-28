@@ -12,7 +12,8 @@ from pytgcalls.types import CallConfig, ChatUpdate, Device, Direction
 from pytgcalls.types.raw import AudioParameters, AudioStream, Stream
 from telethon import events
 from telethon.errors import UserPrivacyRestrictedError
-from telethon.tl.types import PhoneCallWaiting, UpdatePhoneCall
+from telethon.tl.functions.phone import DiscardCallRequest
+from telethon.tl.types import PhoneCallDiscardReasonBusy, PhoneCallWaiting, UpdatePhoneCall
 
 from callmanager import CallFailed
 
@@ -89,6 +90,20 @@ class TgCallsBackend:
             log.exception('Empfang des Tons ließ sich nicht starten')
             await self.hang_up(user_id)
             raise CallFailed('fehler') from None
+
+    async def reject_busy(self, user_id):
+        """Wartenden Anruf als besetzt verwerfen; leave_call() kennt nur "aufgelegt" (Anrufer sähe "abgelehnt")."""
+        try:
+            # py-tgcalls 3.0.0 kennt keinen Grund: Befehl selbst senden, Wartezustand räumen wie leave_call.
+            input_call = await self._calls._app.get_input_call(user_id)
+            if input_call is not None:
+                await self._client(DiscardCallRequest(peer=input_call, duration=0,
+                                                      reason=PhoneCallDiscardReasonBusy(), connection_id=0))
+                self._calls._p2p_configs.pop(user_id, None)
+                return
+        except Exception:
+            log.exception('Als besetzt verwerfen fehlgeschlagen, lege normal auf')
+        await self.hang_up(user_id)
 
     async def hang_up(self, user_id):
         try:

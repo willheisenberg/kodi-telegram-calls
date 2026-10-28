@@ -83,3 +83,54 @@ def test_datenschutz_sperre_wird_zum_eigenen_grund():
     with pytest.raises(CallFailed) as info:
         asyncio.run(backend(FakeCalls(play_error=UserPrivacyRestrictedError(None))).start_call(7, 45))
     assert info.value.grund == 'privatsphaere'
+
+
+class FakeApp:
+    def __init__(self, input_call):
+        self.input_call = input_call
+
+    async def get_input_call(self, chat_id):
+        return self.input_call
+
+
+class FakeClient:
+    def __init__(self, error=None):
+        self.requests, self.error = [], error
+
+    async def __call__(self, request):
+        self.requests.append(request)
+        if self.error:
+            raise self.error
+
+
+def busy_setup(input_call='EINGABE', error=None):
+    calls = FakeCalls()
+    calls._app = FakeApp(input_call)
+    calls._p2p_configs = {8: object()}
+    client = FakeClient(error)
+    return calls, client, tgbackend.TgCallsBackend(client=client, calls=calls)
+
+
+def test_zweiter_anruf_wird_als_besetzt_verworfen():
+    # leave_call() verwirft nur mit "aufgelegt"; der Anrufer sähe "abgelehnt" statt "besetzt" (Review).
+    from telethon.tl.functions.phone import DiscardCallRequest
+    from telethon.tl.types import PhoneCallDiscardReasonBusy
+
+    calls, client, b = busy_setup()
+    asyncio.run(b.reject_busy(8))
+    request = client.requests[0]
+    assert isinstance(request, DiscardCallRequest) and request.peer == 'EINGABE'
+    assert isinstance(request.reason, PhoneCallDiscardReasonBusy)
+    assert 8 not in calls._p2p_configs and calls.left == []
+
+
+def test_besetzt_ohne_wartenden_anruf_legt_normal_auf():
+    calls, client, b = busy_setup(input_call=None)
+    asyncio.run(b.reject_busy(8))
+    assert client.requests == [] and calls.left == [8]
+
+
+def test_besetzt_faellt_bei_fehler_auf_normales_auflegen_zurueck():
+    calls, client, b = busy_setup(error=RuntimeError('weg'))
+    asyncio.run(b.reject_busy(8))
+    assert calls.left == [8]

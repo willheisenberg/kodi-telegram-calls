@@ -95,8 +95,11 @@ werden nicht protokolliert.
 - Beim Schließen sendet das Add-on `quit`. Ist der Prozess nach 3 s nicht
   beendet, wird er hart beendet. Dasselbe beim Beenden von Kodi
   (`xbmc.Monitor().abortRequested()`).
-- Endet der Prozess unerwartet, endet ein laufender Anruf. Das Add-on zeigt
-  „Anrufteil neu gestartet“, startet ihn neu und verbindet sich wieder.
+- Endet der Prozess unerwartet, endet ein laufender Anruf. Lief ein Gespräch,
+  zeigt der Anrufbildschirm wie bei jedem Ende groß „Verbindung abgebrochen“;
+  sonst zeigt das Add-on kurz „Anrufteil neu gestartet“. Es startet den
+  Prozess neu und verbindet sich wieder. (Geändert am 2026-10-28: die kleine
+  Einblendung war am Fernseher nicht lesbar.)
 
 ## Bildschirme und Bedienung
 

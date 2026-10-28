@@ -56,3 +56,19 @@ Wohnzimmer-Pi und wird parallel genutzt. Dort laufen unter anderem Soloist
 - Webcam-Mikrofon: ALSA-Regler `Mic Capture Volume` stand auf 0 von 15, am
   2026-10-15 auf 10 gesetzt. Die C922 setzt ihn beim Wieder-Anstecken auf 0;
   seit 2026-10-28 stellt der Anrufprozess ihn dann selbst auf 10 (`mic.mic_ok`).
+
+## Erkenntnisse aus Teilprojekt 2 (Details: `docs/ergebnisse-teilprojekt-2.md`)
+
+- **Kodi darf beim Anrufton nie leerlaufen.** Die SDP-Datei gilt für Kodi als
+  Datei, nicht als Live-Strom. Ist Kodis Paketwarteschlange ~0,1 s leer
+  („stream stalled“), füllt es den ganzen Puffer und hängt danach ~7 s
+  hinterher. Deshalb schreibt `worker/pacer.py` im festen 10-ms-Takt.
+- **Kodi-Wiedergabe im Anruf nicht stoppen und neu starten.** Der KodiMediaBot
+  hält jeden Stopp für ein abgebrochenes Radio und startet es nach 5 s neu.
+- Messen ohne Anrufer: RTP-Stille an eine eigene SDP-Datei, Kodis
+  Wiedergabezeit per `Player.GetProperties(time)` mit der gesendeten Dauer
+  vergleichen. Nur mit Rückfrage, weil es die laufende Wiedergabe unterbricht.
+- Telegram-Test-DCs nehmen keine Testkonten mehr an; Anruftests brauchen
+  einen echten Gegenüber.
+- Add-on neu starten: `kodi-send -a "StopScript(script.telegram.calls)"`,
+  dann `RunAddon(script.telegram.calls)`. Nur ohne laufenden Anruf.

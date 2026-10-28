@@ -24,7 +24,7 @@ Hintergrunddienst und keine Einblendungen über anderen Kodi-Inhalten.
 | Teil | Stand |
 |---|---|
 | 1. Machbarkeitstest (Anruf von der Kommandozeile) | fertig |
-| 2. 1-zu-1-Sprachanrufe im Add-on | funktioniert, Abnahme mit echten Gesprächen steht aus |
+| 2. 1-zu-1-Sprachanrufe im Add-on | fertig ([Ergebnisse](docs/ergebnisse-teilprojekt-2.md)) |
 | 3. 1-zu-1-Video im Vollbild | geplant |
 | 4. Gruppenanrufe | geplant |
 
@@ -108,8 +108,11 @@ Kodi-Add-on (Python in Kodi)          Anrufprozess (System-Python, eigener Proze
 - **Nur 48 kHz:** Nach dem Einschalten eines AV-Receivers kann 44,1 kHz über
   HDMI zu hoch klingen und knistern; außerdem stürzt ntgcalls 3.0.3 beim
   Empfang mit 44,1 kHz ab.
-- **Ton über Kodi** als Standard: etwa 0,45 s vom Netz bis zu den Boxen im
-  Testaufbau.
+- **Ton über Kodi** als Standard: 0,5–0,7 s Verzögerung in Kodi im
+  Testaufbau. Ein Taktgeber-Thread gibt Kodi alle 10 ms genau 10 ms (Stille,
+  wenn die Gegenseite nichts schickt): Kodi spielt die SDP-Datei als Datei und
+  füllt nach nur ~0,1 s Leerlauf seinen ganzen Puffer, danach hinkt das
+  Gespräch etwa 7 s hinterher.
 - **Echounterdrückung** mit der WebRTC-Audioverarbeitung aus dem
   [LiveKit](https://github.com/livekit/python-sdks)-Paket. Die Webcam hört die
   Boxen; der Ton der Gegenseite dient als Referenz, verzögert um die gemessene
@@ -142,7 +145,7 @@ Kodi-Add-on (Python in Kodi)          Anrufprozess (System-Python, eigener Proze
 
 ```
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/pytest -q      # 152 Tests, ohne Kodi und Telegram
+.venv/bin/pytest -q      # 157 Tests, ohne Kodi und Telegram
 .venv/bin/ruff check .
 tools/make_icon.sh       # Icon und Banner aus assets/*.svg (braucht rsvg-convert)
 ```

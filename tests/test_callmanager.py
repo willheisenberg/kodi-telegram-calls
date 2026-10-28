@@ -10,9 +10,12 @@ from sinks import SinkError
 
 class FakeBackend:
     def __init__(self):
-        self.started, self.accepted, self.hung_up, self.sent = [], [], [], []
+        self.started, self.accepted, self.hung_up, self.sent, self.busy = [], [], [], [], []
         self.start_error = None
         self.start_wait = None
+
+    async def reject_busy(self, user_id):
+        self.busy.append(user_id)
 
     async def start_call(self, user_id, timeout):
         self.started.append(user_id)
@@ -84,8 +87,11 @@ class FakeRing:
 class FakeAudio:
     def __init__(self):
         self.sinks, self.echo, self.mic, self.ringing, self.open_error = [], None, None, False, None
+        self.open_gate = None  # threading.Event: open_sink wartet darauf (langsames Öffnen)
 
     def open_sink(self):
+        if self.open_gate is not None:
+            self.open_gate.wait(2)
         if self.open_error:
             raise self.open_error
         self.sinks.append(FakeSink())
@@ -235,6 +241,51 @@ def test_blockierter_anrufprozess_laesst_kodi_nicht_leerlaufen():
     assert len(filled) >= 0.25 * 192000
 
 
+def test_auflegen_waehrend_die_ausgabe_oeffnet_hinterlaesst_keinen_anruf():
+    # Review: Gegenseite nimmt ab, im selben Moment "Auflegen" -> Anrufprozess blieb dauerhaft "verbunden".
+    import threading
+
+    async def scenario():
+        manager, backend, audio, events = setup()
+        audio.open_gate = threading.Event()
+        task = asyncio.create_task(manager.call(7))
+        await asyncio.sleep(0.05)          # verbunden, open_sink hängt
+        await manager.hangup()
+        audio.open_gate.set()
+        await task
+        await asyncio.sleep(0.05)
+        return manager, audio, events
+
+    manager, audio, events = run(scenario())
+    assert manager.state is State.IDLE and manager.peer is None
+    assert 'connected' not in types(events)
+    assert audio.mic is None
+    assert len(audio.sinks) == 1 and audio.sinks[0].stopped
+    count = len(audio.sinks[0].written)
+    run(asyncio.sleep(0.05))
+    assert len(audio.sinks[0].written) == count  # kein Taktgeber läuft weiter
+
+
+def test_ablehnen_waehrend_die_ausgabe_oeffnet_laesst_nichts_klingeln():
+    import threading
+
+    async def scenario():
+        manager, backend, audio, events = setup()
+        audio.open_gate = threading.Event()
+        task = asyncio.create_task(manager.on_incoming(9))
+        await asyncio.sleep(0.05)
+        await manager.decline()
+        audio.open_gate.set()
+        await task
+        await asyncio.sleep(0.05)
+        return manager, audio
+
+    manager, audio = run(scenario())
+    assert manager.state is State.IDLE
+    assert audio.ringing is False
+    assert len(audio.sinks) == 1 and audio.sinks[0].stopped
+
+
 def test_luecke_mitten_im_gespraech_wird_gefuellt():
     async def scenario():
         manager, backend, audio, events = setup()
@@ -278,7 +329,7 @@ def test_zweiter_anruf_wird_abgewiesen():
         return manager, backend, events
 
     manager, backend, events = run(scenario())
-    assert backend.hung_up == [8]
+    assert backend.busy == [8] and backend.hung_up == []
     assert manager.state is State.CONNECTED and manager.peer == 7
     assert 'incoming' not in types(events)
 
