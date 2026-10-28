@@ -199,11 +199,15 @@ class AppState:
         if self.ringing is not None:
             self.ringing = None
             actions.append(('ring', False))
+        notify = [('notify', 'Anrufteil neu gestartet')]
         if self.call is not None:
-            self.call = None
-            actions += self._show(self.previous)
-        return actions + [('stop_kodi',), ('screensaver', True), ('notify', 'Anrufteil neu gestartet'),
-                          ('restart_worker',)]
+            # Wie bei jedem Ende: Grund groß im Anruffenster, tick() kehrt danach zurück.
+            if self.call['ended_at'] is None:
+                self.call['status'] = GRUND['abgebrochen']
+                self.call['ended_at'] = now
+            actions.append(('refresh',))
+            notify = []
+        return actions + [('stop_kodi',), ('screensaver', True)] + notify + [('restart_worker',)]
 
     # --- Bedienung ------------------------------------------------------
 

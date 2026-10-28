@@ -140,7 +140,7 @@ Kodi add-on (Python in Kodi)          call process (system Python, own process)
 
 ```
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/pytest -q      # 151 tests, no Kodi or Telegram needed
+.venv/bin/pytest -q      # 152 tests, no Kodi or Telegram needed
 .venv/bin/ruff check .
 tools/make_icon.sh       # icon and banner from assets/*.svg (needs rsvg-convert)
 ```

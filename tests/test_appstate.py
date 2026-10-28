@@ -143,13 +143,21 @@ def test_stumm_schaltet_um():
     assert state.on_user('mute', 2)[0] == ('send', 'mute', {'an': False})
 
 
-def test_verlust_beendet_anruf_und_startet_neu():
+def test_verlust_im_anruf_zeigt_den_abbruch_gross_im_anruffenster():
+    # Die kleine Einblendung war am Fernseher nicht lesbar; wie bei jedem Ende steht der Grund im Anruffenster.
     state = logged_in()
     state.on_user('call', 0, id=2)
     actions = state.on_event({'typ': '_lost'}, 1)
-    assert actions == [('show', 'home'), ('stop_kodi',), ('screensaver', True),
-                       ('notify', 'Anrufteil neu gestartet'), ('restart_worker',)]
-    assert state.call is None
+    assert actions == [('refresh',), ('stop_kodi',), ('screensaver', True), ('restart_worker',)]
+    assert state.call['status'] == 'Verbindung abgebrochen' and state.call['ended_at'] == 1
+    assert state.tick(1 + 3) == [('show', 'home')] and state.call is None
+
+
+def test_verlust_ohne_anruf_meldet_den_neustart():
+    state = logged_in()
+    actions = state.on_event({'typ': '_lost'}, 1)
+    assert actions == [('stop_kodi',), ('screensaver', True), ('notify', 'Anrufteil neu gestartet'),
+                       ('restart_worker',)]
 
 
 def test_kodi_wiedergabe_und_favoriten():

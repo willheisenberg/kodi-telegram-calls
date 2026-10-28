@@ -142,7 +142,7 @@ Kodi-Add-on (Python in Kodi)          Anrufprozess (System-Python, eigener Proze
 
 ```
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/pytest -q      # 151 Tests, ohne Kodi und Telegram
+.venv/bin/pytest -q      # 152 Tests, ohne Kodi und Telegram
 .venv/bin/ruff check .
 tools/make_icon.sh       # Icon und Banner aus assets/*.svg (braucht rsvg-convert)
 ```
