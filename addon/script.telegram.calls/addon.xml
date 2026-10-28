@@ -12,6 +12,8 @@
         <description lang="de_DE">Anrufen und angerufen werden mit dem eigenen Telegram-Account, solange das Add-on geöffnet ist. Bedienung mit der Fernbedienung.</description>
         <description lang="en_GB">Make and receive Telegram calls with your own account while the add-on is open. Operated with the remote.</description>
         <platform>linux</platform>
+        <license>MIT</license>
+        <source>https://github.com/willheisenberg/kodi-telegram-calls</source>
         <assets>
             <icon>resources/icon.png</icon>
         </assets>

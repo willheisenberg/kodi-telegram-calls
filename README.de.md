@@ -155,7 +155,7 @@ Messungen liegen in `docs/`.
 
 ## Lizenz
 
-Noch nicht festgelegt. Die mitgelieferten Bibliotheken behalten ihre eigenen
+[MIT](LICENSE). Die mitgelieferten Bibliotheken behalten ihre eigenen
 Lizenzen (ntgcalls und py-tgcalls: LGPL-3.0, Telethon: MIT, LiveKit:
 Apache-2.0). Der Hörer im Icon ist das „call“-Icon aus Googles Material Icons
 (Apache-2.0).

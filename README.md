@@ -153,6 +153,6 @@ documents and measurements are in `docs/` (German).
 
 ## License
 
-Not chosen yet. The bundled libraries keep their own licences (ntgcalls and
+[MIT](LICENSE). The bundled libraries keep their own licences (ntgcalls and
 py-tgcalls: LGPL-3.0, Telethon: MIT, LiveKit: Apache-2.0). The handset in the
 icon is the "call" icon from Google's Material Icons (Apache-2.0).
