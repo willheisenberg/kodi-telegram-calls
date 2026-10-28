@@ -20,9 +20,11 @@ und zu Freunden, bedient mit der Fernbedienung. Spec:
 | Spotify | pausiert beim Anrufbeginn, läuft nach dem Auflegen nicht von selbst weiter |
 | Mikrofon nach Wieder-Anstecken | Regler wird von selbst auf 10 von 15 gestellt |
 
-Nicht gesondert abgenommen: zweiter Anruf während eines Gesprächs (wird mit
-dem Grund „besetzt“ verworfen, `PhoneCallDiscardReasonBusy`; ob die
-Telegram-Apps das als „Besetzt“ anzeigen, ist ungeprüft), Echo-Qualität aus Sicht der Gegenseite (keine
+Zweiter Anruf während eines Gesprächs: wird mit dem Grund „besetzt“
+verworfen (`PhoneCallDiscardReasonBusy`); am 2026-10-28 mit vorgetäuschtem
+Gespräch auf der Box geprüft, beim Anrufer kam das Besetztzeichen.
+
+Nicht gesondert abgenommen: Echo-Qualität aus Sicht der Gegenseite (keine
 Beschwerde gemeldet), Fokus im Klingeldialog nach der Korrektur (danach ohne
 Beanstandung angenommen und abgelehnt).
 
@@ -109,8 +111,8 @@ Alle selten oder Komfort; keine verhindert die Nutzung.
   einer stark belasteten Maschine wackeln.
 - Gleichzeitiges Anrufen in beide Richtungen (A ruft an, während man A
   anwählt) legt auch den eigenen Anruf auf.
-- Ungetestet mit echten Anrufen: Anzeige „Besetzt“ beim zweiten Anrufer;
-  Auflegen genau im Moment des Verbindens (nur per Test nachgestellt).
+- Ungetestet mit echten Anrufen: Auflegen genau im Moment des Verbindens
+  (nur per Test nachgestellt).
 
 ## Offen für Teilprojekt 3 (Video)
 
