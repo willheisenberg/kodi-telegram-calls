@@ -24,6 +24,11 @@ Zweiter Anruf während eines Gesprächs: wird mit dem Grund „besetzt“
 verworfen (`PhoneCallDiscardReasonBusy`); am 2026-10-28 mit vorgetäuschtem
 Gespräch auf der Box geprüft, beim Anrufer kam das Besetztzeichen.
 
+Auflegen genau im Moment des Verbindens: am 2026-10-28 mit einem Teststand
+geprüft, der das Öffnen der Tonausgabe um 8 s verzögert. Aufgelegt während
+des Öffnens, die verspätete Ausgabe wurde sofort geschlossen, der nächste
+Anruf lief normal, kein `aplay` blieb übrig.
+
 Nicht gesondert abgenommen: Echo-Qualität aus Sicht der Gegenseite (keine
 Beschwerde gemeldet), Fokus im Klingeldialog nach der Korrektur (danach ohne
 Beanstandung angenommen und abgelehnt).
@@ -111,8 +116,6 @@ Alle selten oder Komfort; keine verhindert die Nutzung.
   einer stark belasteten Maschine wackeln.
 - Gleichzeitiges Anrufen in beide Richtungen (A ruft an, während man A
   anwählt) legt auch den eigenen Anruf auf.
-- Ungetestet mit echten Anrufen: Auflegen genau im Moment des Verbindens
-  (nur per Test nachgestellt).
 
 ## Offen für Teilprojekt 3 (Video)
 
