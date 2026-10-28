@@ -4,6 +4,7 @@ import pytest
 
 import callmanager
 from callmanager import CallFailed, CallManager, State
+from echo import stereo_to_mono
 from sinks import SinkError
 
 
@@ -204,13 +205,34 @@ def test_nach_dem_annehmen_fuellt_stille_bis_zum_ersten_ton():
         await asyncio.sleep(0.4)
         filled = b''.join(sink.written[before:])
         manager.on_frames(9, b'\x01' * 1920)
+        await asyncio.sleep(0.05)
+        await manager.hangup()
         return sink, filled, audio
 
     sink, filled, audio = run(scenario())
     assert len(filled) >= 0.2 * 192000 and filled == bytes(len(filled))
-    assert sink.written[-1] == b'\x01' * 1920
+    assert b'\x01' * 1920 in sink.written
     # Die Echounterdrückung bekommt die Stille als Referenz, sonst verrutscht ihr Zeitbezug.
     assert sum(map(len, audio.echo.references)) > 0
+
+
+def test_blockierter_anrufprozess_laesst_kodi_nicht_leerlaufen():
+    import time
+
+    async def scenario():
+        manager, backend, audio, events = setup()
+        await manager.on_incoming(9)
+        await asyncio.sleep(0.01)
+        await manager.accept()
+        sink = audio.sinks[0]
+        before = len(sink.written)
+        time.sleep(0.4)  # py-tgcalls hält die Ereignisschleife fest
+        filled = b''.join(sink.written[before:])
+        await manager.hangup()
+        return filled
+
+    filled = run(scenario())
+    assert len(filled) >= 0.25 * 192000
 
 
 def test_luecke_mitten_im_gespraech_wird_gefuellt():
@@ -220,9 +242,12 @@ def test_luecke_mitten_im_gespraech_wird_gefuellt():
         sink = audio.sinks[0]
         for _ in range(5):
             manager.on_frames(7, b'\x01' * 1920)
+        await asyncio.sleep(0.1)
         before = len(sink.written)
         await asyncio.sleep(0.4)
-        return b''.join(sink.written[before:])
+        filled = b''.join(sink.written[before:])
+        await manager.hangup()
+        return filled
 
     filled = run(scenario())
     assert len(filled) >= 0.2 * 192000 and filled == bytes(len(filled))
@@ -307,13 +332,17 @@ def test_ton_der_gegenseite_geht_an_ausgabe_und_echo():
     async def scenario():
         manager, backend, audio, events = setup()
         await manager.call(7)
-        manager.on_frames(7, bytes(1920))
-        manager.on_frames(8, bytes(1920))
+        manager.on_frames(7, b'\x01' * 1920)
+        manager.on_frames(8, b'\x02' * 1920)
+        await asyncio.sleep(0.05)
+        await manager.hangup()
         return audio
 
     audio = run(scenario())
-    assert audio.sinks[0].written == [bytes(1920)]
-    assert audio.echo.references == [bytes(960)]
+    written = audio.sinks[0].written
+    assert b'\x01' * 1920 in written and b'\x02' * 1920 not in written
+    # Referenz der Echounterdrückung ist, was rausgeht (hier Mono aus dem Stereo-Block).
+    assert stereo_to_mono(b'\x01' * 1920) in audio.echo.references
 
 
 def test_mikrofon_geht_durch_echo_an_telegram_und_stumm_sendet_stille():

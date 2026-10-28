@@ -9,13 +9,11 @@ import enum
 import logging
 
 from echo import stereo_to_mono
-from gapfill import GapFiller
-from sinks import SinkError
+from pacer import Pacer
 
 log = logging.getLogger('worker.call')
 
 RING_TIMEOUT = 45
-FILL_TICK_S = 0.02
 
 
 class CallFailed(Exception):
@@ -44,8 +42,7 @@ class CallManager:
         self._echo = None
         self._mic = None
         self._ring_task = None
-        self._filler = None
-        self._fill_task = None
+        self._pacer = None
         self._timeout_task = None
         self._dial_task = None
         self._muted = False
@@ -84,9 +81,8 @@ class CallManager:
         if self.state is not State.INCOMING:
             return
         self._stop_ringing()
-        # Dieselbe Ausgabe weiterbenutzen und schon bis zum ersten Gesprächston Lücken füllen: Ein Stopp
-        # der Kodi-Wiedergabe hält der KodiMediaBot für ein abgebrochenes Radio und startet es nach 5 s neu.
-        self._start_filling()
+        # Dieselbe Ausgabe samt Taktgeber weiterbenutzen: Ein Stopp der Kodi-Wiedergabe hält der KodiMediaBot
+        # für ein abgebrochenes Radio und startet es nach 5 s neu.
         user_id = self.peer
         try:
             await self._backend.accept(user_id)
@@ -138,7 +134,7 @@ class CallManager:
         self._timeout_task = asyncio.create_task(self._ring_timeout_after(user_id))
         if not await self._ensure_sink():
             return
-        self._ring_task = asyncio.create_task(self._audio.ringtone().run(self._sink))
+        self._ring_task = asyncio.create_task(self._audio.ringtone().run(self._pacer))
 
     def on_ringing(self, user_id):
         if self.state is State.OUTGOING and self.peer == user_id:
@@ -152,18 +148,16 @@ class CallManager:
 
     def on_frames(self, user_id, pcm):
         """Ton der Gegenseite (s16le, 48 kHz, Stereo)."""
-        if self.state is not State.CONNECTED or user_id != self.peer or self._sink is None:
+        if self.state is not State.CONNECTED or user_id != self.peer or self._pacer is None:
             return
-        try:
-            if not self._filler.write(pcm):
-                return
-        except SinkError as e:
-            if not self._sink_failed:
-                self._sink_failed = True
-                log.error('Tonausgabe ausgefallen: %s', e)
-                asyncio.get_running_loop().create_task(self._fail('tonausgabe'))
-            return
-        self._echo.add_reference(stereo_to_mono(pcm))
+        self._pacer.write(pcm)
+
+    def _on_sink_error(self, error):
+        """Läuft im Taktgeber-Thread."""
+        if not self._sink_failed:
+            self._sink_failed = True
+            log.error('Tonausgabe ausgefallen: %s', error)
+            self._loop.call_soon_threadsafe(lambda: self._loop.create_task(self._fail('tonausgabe')))
 
     # --- intern ---------------------------------------------------------
 
@@ -196,6 +190,11 @@ class CallManager:
             log.exception('Tonausgabe lässt sich nicht öffnen')
             await self._fail('tonausgabe')
             return False
+        # Fester 10-ms-Takt in eigenem Thread: Kodi darf nie leerlaufen (pacer.py).
+        self._loop = asyncio.get_running_loop()
+        self._sink_failed = False
+        self._pacer = Pacer(self._sink, on_audio=self._reference, on_error=self._on_sink_error)
+        self._pacer.start()
         return True
 
     async def _connected(self):
@@ -203,29 +202,16 @@ class CallManager:
             return
         self._echo = self._audio.make_echo(self._sink.delay_ms)
         self._muted = False
-        self._sink_failed = False
         self.state = State.CONNECTED
-        self._start_filling()
         self._mic = self._audio.make_mic(self._on_mic_frame)
         self._mic.start()
         self._emit('connected')
 
-    def _start_filling(self):
-        if self._filler is None and self._sink is not None:
-            self._filler = GapFiller(self._sink, on_silence=self._silence_reference)
-            self._fill_task = asyncio.create_task(self._fill_loop(self._filler))
-
-    async def _fill_loop(self, filler):
-        try:
-            while True:
-                filler.tick()
-                await asyncio.sleep(FILL_TICK_S)
-        except SinkError:
-            pass  # meldet on_frames beim nächsten Block
-
-    def _silence_reference(self, silence):
-        if self._echo is not None:
-            self._echo.add_reference(stereo_to_mono(silence))
+    def _reference(self, pcm):
+        """Was Kodi abspielt, echter Ton wie Stille, ist die Referenz der Echounterdrückung."""
+        echo = self._echo
+        if echo is not None:
+            echo.add_reference(stereo_to_mono(pcm))
 
     async def _ring_timeout_after(self, user_id):
         await asyncio.sleep(self._ring_timeout)
@@ -247,20 +233,22 @@ class CallManager:
             log.exception('Auflegen fehlgeschlagen')
 
     def _stop_ringing(self):
-        for task in (self._ring_task, self._timeout_task, self._fill_task):
+        for task in (self._ring_task, self._timeout_task):
             if task is not None:
                 task.cancel()
-        self._ring_task = self._timeout_task = self._fill_task = self._filler = None
+        self._ring_task = self._timeout_task = None
 
     async def _end(self, grund):
         if self.state is State.IDLE:
             return
         self._stop_ringing()
-        mic, sink = self._mic, self._sink
-        self._mic = self._sink = self._echo = None
+        mic, pacer, sink = self._mic, self._pacer, self._sink
+        self._mic = self._pacer = self._sink = self._echo = None
         self.state, self.peer = State.IDLE, None
         if mic is not None:
             await asyncio.to_thread(mic.stop)
+        if pacer is not None:
+            await asyncio.to_thread(pacer.stop)
         if sink is not None:
             await asyncio.to_thread(sink.stop)
         self._emit('ended', grund=grund)
